@@ -482,7 +482,7 @@ footer .text span a:hover{
         width: 90%;
         max-width: 40px 0;
     }
-    .project .boxes .box{
+    .projects .boxes .box{
         margin: 20px 0;
         width: calc(100% / 2 - 20px);
     }
@@ -544,7 +544,7 @@ footer .text span a:hover{
         align-items: center;
         width: 100%;
     }
-    .services .boxes .box{
+    .projects .boxes .box{
         margin: 20px 0;
         width: 100%;
     }
