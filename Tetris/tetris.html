@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #111;
+            margin: 0;
+            color: white;
+            flex-direction: column;
+        }
+        #tetris {
+            position: relative;
+            width: 300px;
+            height: 600px;
+            border: 2px solid #fff;
+            background-color: #222;
+            margin-bottom: 20px;
+        }
+        .block {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="tetris">
+        <div id="score">Score: 0</div>
+    </div>
+    <div class="controls">
+        <button id="startButton">Start</button>
+        <button id="pauseButton">Pause</button>
+    </div>
+
+    <script>
+        const tetrisContainer = document.getElementById('tetris');
+        const scoreDisplay = document.getElementById('score');
+        const startButton = document.getElementById('startButton');
+        const pauseButton = document.getElementById('pauseButton');
+
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30;
+        const colors = ['#FF5733', '#33FF57', '#3357FF', '#F0E130', '#FF33A8', '#FF5733', '#33FFF7'];
+        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        let currentPiece, currentPos, score = 0;
+        let gameInterval;
+        let isPaused = false;
+
+        function drawBoard() {
+            tetrisContainer.innerHTML = `<div id="score">Score: ${score}</div>`;
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    if (board[row][col]) {
+                        const block = document.createElement('div');
+                        block.style.top = `${row * BLOCK_SIZE}px`;
+                        block.style.left = `${col * BLOCK_SIZE}px`;
+                        block.style.backgroundColor = board[row][col];
+                        block.classList.add('block');
+                        tetrisContainer.appendChild(block);
+                    }
+                }
+            }
+        }
+
+        function createPiece() {
+            const shapes = [
+                [[1, 1, 1, 1]], // I shape
+                [[1, 1], [1, 1]], // O shape
+                [[0, 1, 0], [1, 1, 1]], // T shape
+                [[1, 0, 0], [1, 1, 1]], // L shape
+                [[0, 0, 1], [1, 1, 1]], // J shape
+                [[1, 1, 0], [0, 1, 1]], // S shape
+                [[0, 1, 1], [1, 1, 0]]  // Z shape
+            ];
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+            currentPiece = shape;
+            currentPos = { row: 0, col: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2) };
+        }
+
+        function drawPiece() {
+            for (let row = 0; row < currentPiece.length; row++) {
+                for (let col = 0; col < currentPiece[row].length; col++) {
+                    if (currentPiece[row][col]) {
+                        const block = document.createElement('div');
+                        block.style.top = `${(currentPos.row + row) * BLOCK_SIZE}px`;
+                        block.style.left = `${(currentPos.col + col) * BLOCK_SIZE}px`;
+                        block.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        block.classList.add('block');
+                        tetrisContainer.appendChild(block);
+                    }
+                }
+            }
+        }
+
+        function isValidMove(piece, position) {
+            for (let row = 0; row < piece.length; row++) {
+                for (let col = 0; col < piece[row].length; col++) {
+                    if (piece[row][col]) {
+                        const newRow = position.row + row;
+                        const newCol = position.col + col;
+                        if (newRow >= ROWS || newCol < 0 || newCol >= COLS || (newRow >= 0 && board[newRow][newCol])) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function movePiece(direction) {
+            const newPos = { ...currentPos };
+            if (direction === 'left') newPos.col--;
+            if (direction === 'right') newPos.col++;
+            if (direction === 'down') newPos.row++;
+
+            if (isValidMove(currentPiece, newPos)) {
+                currentPos = newPos;
+            } else if (direction === 'down') {
+                placePiece();
+            }
+            drawBoard();
+            drawPiece();
+        }
+
+        function placePiece() {
+            for (let row = 0; row < currentPiece.length; row++) {
+                for (let col = 0; col < currentPiece[row].length; col++) {
+                    if (currentPiece[row][col]) {
+                        const rowIndex = currentPos.row + row;
+                        const colIndex = currentPos.col + col;
+                        if (rowIndex >= 0) {
+                            board[rowIndex][colIndex] = colors[Math.floor(Math.random() * colors.length)];
+                        }
+                    }
+                }
+            }
+            removeFullRows();
+            createPiece();
+        }
+
+        function removeFullRows() {
+            for (let row = ROWS - 1; row >= 0; row--) {
+                if (board[row].every(cell => cell !== null)) {
+                    board.splice(row, 1);
+                    board.unshift(Array(COLS).fill(null));
+                    score += 100;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                }
+            }
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'ArrowLeft') movePiece('left');
+            if (e.key === 'ArrowRight') movePiece('right');
+            if (e.key === 'ArrowDown') movePiece('down');
+            if (e.key === 'ArrowUp') rotatePiece();
+        }
+
+        function rotatePiece() {
+            const newPiece = currentPiece[0].map((_, index) => currentPiece.map(row => row[index])).reverse();
+            if (isValidMove(newPiece, currentPos)) {
+                currentPiece = newPiece;
+            }
+            drawBoard();
+            drawPiece();
+        }
+
+        function startGame() {
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+            score = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            createPiece();
+            document.addEventListener('keydown', handleKeyPress);
+            gameInterval = setInterval(() => {
+                if (!isPaused) {
+                    movePiece('down');
+                }
+            }, 500);
+        }
+
+        function pauseGame() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                clearInterval(gameInterval);
+                pauseButton.textContent = 'Resume';
+            } else {
+                gameInterval = setInterval(() => {
+                    movePiece('down');
+                }, 500);
+                pauseButton.textContent = 'Pause';
+            }
+        }
+
+        startButton.addEventListener('click', () => {
+            startGame();
+            startButton.disabled = true;
+        });
+
+        pauseButton.addEventListener('click', pauseGame);
+    </script>
+</body>
+</html>
